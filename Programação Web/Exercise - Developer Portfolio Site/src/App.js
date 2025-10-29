@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Github, Linkedin, Mail, ArrowUpRight, LogIn, LogOut, Shield, Edit, Trash2, Plus } from 'lucide-react';
+import { Menu, X, Github, Linkedin, Mail, ArrowUpRight, LogIn, LogOut, Shield, Edit, Trash2, Plus, Users } from 'lucide-react';
 
 export default function Portfolio() {
   const API_URL = 'http://localhost:3000';
@@ -13,6 +13,7 @@ export default function Portfolio() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [projects, setProjects] = useState([]);
+  const [users, setUsers] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -20,7 +21,10 @@ export default function Portfolio() {
   const [dashboardData, setDashboardData] = useState(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('projects');
   const [projectForm, setProjectForm] = useState({
     title: '',
     year: new Date().getFullYear().toString(),
@@ -28,6 +32,12 @@ export default function Portfolio() {
     description: '',
     link: '#',
     technologies: ''
+  });
+  const [userForm, setUserForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'guest'
   });
 
   useEffect(() => {
@@ -53,6 +63,23 @@ export default function Portfolio() {
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setUsers(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
     }
   };
 
@@ -152,6 +179,27 @@ export default function Portfolio() {
     setShowProjectModal(true);
   };
 
+  const openUserModal = (userData = null) => {
+    if (userData) {
+      setEditingUser(userData);
+      setUserForm({
+        name: userData.name,
+        email: userData.email,
+        password: '',
+        role: userData.role
+      });
+    } else {
+      setEditingUser(null);
+      setUserForm({
+        name: '',
+        email: '',
+        password: '',
+        role: 'guest'
+      });
+    }
+    setShowUserModal(true);
+  };
+
   const handleProjectSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
@@ -193,6 +241,47 @@ export default function Portfolio() {
     }
   };
 
+  const handleUserSubmit = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+
+    const userData = { ...userForm };
+    if (editingUser && !userData.password) {
+      delete userData.password;
+    }
+
+    try {
+      const url = editingUser
+        ? `${API_URL}/users/${editingUser.id}`
+        : `${API_URL}/users`;
+
+      const method = editingUser ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(userData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(editingUser ? 'User updated successfully!' : 'User created successfully!');
+        setShowUserModal(false);
+        fetchUsers();
+        if (dashboardData) fetchDashboard();
+      } else {
+        alert(data.message || 'Operation failed');
+      }
+    } catch (error) {
+      console.error('Error saving user:', error);
+      alert('Failed to save user');
+    }
+  };
+
   const handleDeleteProject = async (projectId) => {
     if (!window.confirm('Are you sure you want to delete this project?')) {
       return;
@@ -223,6 +312,36 @@ export default function Portfolio() {
     }
   };
 
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch(`${API_URL}/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('User deleted successfully!');
+        fetchUsers();
+        if (dashboardData) fetchDashboard();
+      } else {
+        alert(data.message || 'Delete failed');
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Failed to delete user');
+    }
+  };
+
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -231,8 +350,96 @@ export default function Portfolio() {
     }
   };
 
+  const openAdminPanel = () => {
+    setShowAdminPanel(true);
+    setActiveTab('projects');
+    fetchUsers();
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.white, color: colors.darkGrey }}>
+      {/* User Modal (Create/Edit) */}
+      {showUserModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="max-w-2xl w-full p-8 rounded-lg my-8" style={{ backgroundColor: colors.white }}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-light" style={{ color: colors.darkGrey }}>
+                {editingUser ? 'Edit User' : 'Create New User'}
+              </h2>
+              <button onClick={() => setShowUserModal(false)} style={{ color: colors.darkGrey }}>
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleUserSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm mb-2" style={{ color: colors.darkGrey }}>Name</label>
+                <input
+                  type="text"
+                  value={userForm.name}
+                  onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                  className="w-full px-4 py-3 border"
+                  style={{ borderColor: colors.beige, backgroundColor: colors.white }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-2" style={{ color: colors.darkGrey }}>Email *</label>
+                <input
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                  className="w-full px-4 py-3 border"
+                  style={{ borderColor: colors.beige, backgroundColor: colors.white }}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-2" style={{ color: colors.darkGrey }}>
+                  Password {editingUser && '(leave blank to keep current)'}
+                </label>
+                <input
+                  type="password"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                  className="w-full px-4 py-3 border"
+                  style={{ borderColor: colors.beige, backgroundColor: colors.white }}
+                  required={!editingUser}
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-2" style={{ color: colors.darkGrey }}>Role *</label>
+                <select
+                  value={userForm.role}
+                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                  className="w-full px-4 py-3 border"
+                  style={{ borderColor: colors.beige, backgroundColor: colors.white }}
+                  required
+                >
+                  <option value="guest">Guest</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 text-sm uppercase tracking-widest font-light"
+                  style={{ backgroundColor: colors.darkGrey, color: colors.white }}
+                >
+                  {editingUser ? 'Update User' : 'Create User'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowUserModal(false)}
+                  className="flex-1 px-6 py-3 text-sm uppercase tracking-widest font-light border"
+                  style={{ borderColor: colors.darkGrey, color: colors.darkGrey, backgroundColor: 'transparent' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Project Modal (Create/Edit) */}
       {showProjectModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -428,7 +635,7 @@ export default function Portfolio() {
                 </span>
                 {user?.role === 'admin' && (
                   <button
-                    onClick={() => setShowAdminPanel(!showAdminPanel)}
+                    onClick={() => showAdminPanel ? setShowAdminPanel(false) : openAdminPanel()}
                     className="text-base uppercase tracking-widest font-light transition-opacity"
                     style={{ color: colors.darkGrey, opacity: 0.8 }}
                     onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
@@ -487,7 +694,7 @@ export default function Portfolio() {
                   {user?.role === 'admin' && (
                     <button
                       onClick={() => {
-                        setShowAdminPanel(!showAdminPanel);
+                        showAdminPanel ? setShowAdminPanel(false) : openAdminPanel();
                         setMobileMenuOpen(false);
                       }}
                       className="block text-sm uppercase tracking-widest font-light w-full text-left"
@@ -579,7 +786,7 @@ export default function Portfolio() {
       </section>
 
       {/* Dashboard Section */}
-      {isAuthenticated && dashboardData && (
+      {isAuthenticated && dashboardData && !showAdminPanel && (
         <section className="py-32 px-6 md:px-12" style={{ backgroundColor: colors.white, borderTop: `1px solid ${colors.beige}` }}>
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-sm md:text-base uppercase tracking-widest font-light mb-20" style={{ color: colors.darkGrey, opacity: 0.8 }}>
@@ -644,135 +851,226 @@ export default function Portfolio() {
         </section>
       )}
 
-      {/* Work Section with Admin CRUD */}
+      {/* Admin Panel Section with Tabs */}
+      {showAdminPanel && user?.role === 'admin' && (
+        <section id="admin-panel" className="py-32 px-6 md:px-12" style={{ backgroundColor: colors.white }}>
+          <div className="container mx-auto max-w-6xl">
+            <h2 className="text-sm md:text-base uppercase tracking-widest font-light mb-8" style={{ color: colors.darkGrey, opacity: 0.8 }}>
+              Admin Panel
+            </h2>
+
+            {/* Tab Navigation */}
+            <div className="flex gap-4 mb-8" style={{ borderBottom: `2px solid ${colors.beige}` }}>
+              <button
+                onClick={() => setActiveTab('projects')}
+                className="px-6 py-3 text-sm uppercase tracking-widest font-light transition-all"
+                style={{
+                  color: colors.darkGrey,
+                  borderBottom: activeTab === 'projects' ? `2px solid ${colors.darkGrey}` : 'none',
+                  marginBottom: '-2px'
+                }}
+              >
+                Projects
+              </button>
+              <button
+                onClick={() => setActiveTab('users')}
+                className="px-6 py-3 text-sm uppercase tracking-widest font-light transition-all flex items-center gap-2"
+                style={{
+                  color: colors.darkGrey,
+                  borderBottom: activeTab === 'users' ? `2px solid ${colors.darkGrey}` : 'none',
+                  marginBottom: '-2px'
+                }}
+              >
+                <Users size={16} /> Users
+              </button>
+            </div>
+
+            {/* Users Management Tab */}
+            {activeTab === 'users' && (
+              <div className="space-y-8">
+                <div className="flex justify-between items-center p-6" style={{ backgroundColor: colors.beige }}>
+                  <h3 className="text-2xl font-light" style={{ color: colors.darkGrey }}>
+                    User Management
+                  </h3>
+                  <button
+                    onClick={() => openUserModal()}
+                    className="px-6 py-3 text-sm uppercase tracking-widest font-light flex items-center gap-2"
+                    style={{ backgroundColor: colors.darkGrey, color: colors.white }}
+                  >
+                    <Plus size={16} /> Create New User
+                  </button>
+                </div>
+
+                {users.map((u) => (
+                  <div key={u.id} className="p-6" style={{ backgroundColor: colors.beige }}>
+                    <div className="flex justify-between items-start gap-6">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-3xl font-light" style={{ color: colors.darkGrey }}>
+                            {u.name}
+                          </h3>
+                          {u.role === 'admin' && <Shield size={20} style={{ color: colors.darkGrey }} />}
+                        </div>
+                        <p className="text-lg font-light mb-2" style={{ color: colors.darkGrey, opacity: 0.6 }}>
+                          {u.email}
+                        </p>
+                        <div className="flex flex-wrap gap-4 text-sm" style={{ color: colors.darkGrey, opacity: 0.7 }}>
+                          <span>Role: {u.role}</span>
+                          <span>Status: {u.is_active ? 'Active' : 'Inactive'}</span>
+                          <span>ID: {u.id}</span>
+                        </div>
+                        <div className="text-sm mt-2" style={{ color: colors.darkGrey, opacity: 0.5 }}>
+                          Created: {new Date(u.created_at).toLocaleDateString()}
+                          {u.last_login && ` • Last login: ${new Date(u.last_login).toLocaleDateString()}`}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => openUserModal(u)}
+                          className="px-4 py-2 text-sm uppercase tracking-widest font-light border flex items-center gap-2 whitespace-nowrap"
+                          style={{ borderColor: colors.darkGrey, color: colors.darkGrey }}
+                        >
+                          <Edit size={14} /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u.id)}
+                          className="px-4 py-2 text-sm uppercase tracking-widest font-light flex items-center gap-2 whitespace-nowrap"
+                          style={{ backgroundColor: '#dc2626', color: colors.white }}
+                          disabled={u.id === user.id}
+                        >
+                          <Trash2 size={14} /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Projects Management Tab */}
+            {activeTab === 'projects' && (
+              <div className="space-y-8">
+                <div className="flex justify-between items-center p-6" style={{ backgroundColor: colors.beige }}>
+                  <h3 className="text-2xl font-light" style={{ color: colors.darkGrey }}>
+                    Project Management
+                  </h3>
+                  <button
+                    onClick={() => openProjectModal()}
+                    className="px-6 py-3 text-sm uppercase tracking-widest font-light flex items-center gap-2"
+                    style={{ backgroundColor: colors.darkGrey, color: colors.white }}
+                  >
+                    <Plus size={16} /> Create New Project
+                  </button>
+                </div>
+
+                {projects.map((project) => (
+                  <div key={project.id} className="p-6" style={{ backgroundColor: colors.beige }}>
+                    <div className="flex justify-between items-start gap-6">
+                      <div className="flex-1">
+                        <div className="text-sm uppercase tracking-widest font-light mb-2" style={{ color: colors.darkGrey, opacity: 0.6 }}>
+                          {project.year} · ID: {project.id}
+                        </div>
+                        <h3 className="text-3xl font-light mb-2" style={{ color: colors.darkGrey }}>
+                          {project.title}
+                        </h3>
+                        <p className="text-lg font-light mb-4" style={{ color: colors.darkGrey, opacity: 0.6 }}>
+                          {project.role}
+                        </p>
+                        <p className="text-base font-light mb-4" style={{ color: colors.darkGrey, opacity: 0.8 }}>
+                          {project.description}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {project.technologies.map((tech, i) => (
+                            <span
+                              key={i}
+                              className="text-sm font-light px-3 py-1"
+                              style={{ backgroundColor: colors.white, color: colors.darkGrey }}
+                            >
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+                        <a href={project.link} className="text-sm" style={{ color: colors.darkGrey, opacity: 0.6 }}>
+                          {project.link}
+                        </a>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => openProjectModal(project)}
+                          className="px-4 py-2 text-sm uppercase tracking-widest font-light border flex items-center gap-2 whitespace-nowrap"
+                          style={{ borderColor: colors.darkGrey, color: colors.darkGrey }}
+                        >
+                          <Edit size={14} /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProject(project.id)}
+                          className="px-4 py-2 text-sm uppercase tracking-widest font-light flex items-center gap-2 whitespace-nowrap"
+                          style={{ backgroundColor: '#dc2626', color: colors.white }}
+                        >
+                          <Trash2 size={14} /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Work Section */}
       <section id="work" className="py-32 px-6 md:px-12" style={{ backgroundColor: colors.beige }}>
         <div className="container mx-auto max-w-6xl">
           <div className="flex justify-between items-center mb-20">
             <h2 className="text-sm md:text-base uppercase tracking-widest font-light" style={{ color: colors.darkGrey, opacity: 0.8 }}>
               Selected Work {projects.length > 0 && `· ${projects.length} Projects`}
             </h2>
-            {user?.role === 'admin' && !showAdminPanel && (
-              <button
-                onClick={() => openProjectModal()}
-                className="px-6 py-3 text-sm uppercase tracking-widest font-light flex items-center gap-2"
-                style={{ backgroundColor: colors.darkGrey, color: colors.white }}
-              >
-                <Plus size={16} /> New Project
-              </button>
-            )}
           </div>
 
-          {showAdminPanel && user?.role === 'admin' ? (
-            <div className="space-y-8">
-              <div className="flex justify-between items-center p-6" style={{ backgroundColor: colors.white }}>
-                <h3 className="text-2xl font-light" style={{ color: colors.darkGrey }}>
-                  Project Management
-                </h3>
-                <button
-                  onClick={() => openProjectModal()}
-                  className="px-6 py-3 text-sm uppercase tracking-widest font-light flex items-center gap-2"
-                  style={{ backgroundColor: colors.darkGrey, color: colors.white }}
-                >
-                  <Plus size={16} /> Create New Project
-                </button>
+          <div className="space-y-32">
+            {projects.map((project) => (
+              <div key={project.id} className="grid md:grid-cols-12 gap-8 md:gap-16">
+                <div className="md:col-span-5 space-y-4">
+                  <div className="text-sm uppercase tracking-widest font-light" style={{ color: colors.darkGrey, opacity: 0.8 }}>
+                    {project.year}
+                  </div>
+                  <h3 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight" style={{ color: colors.darkGrey }}>
+                    {project.title}
+                  </h3>
+                  <p className="text-base md:text-lg font-light" style={{ color: colors.darkGrey, opacity: 0.5 }}>
+                    {project.role}
+                  </p>
+                </div>
+
+                <div className="md:col-span-7 space-y-6">
+                  <p className="text-xl md:text-2xl font-light leading-relaxed" style={{ color: colors.darkGrey, opacity: 0.7 }}>
+                    {project.description}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {project.technologies.map((tech, i) => (
+                      <span
+                        key={i}
+                        className="text-sm md:text-base font-light px-4 py-2"
+                        style={{ backgroundColor: colors.white, color: colors.darkGrey, opacity: 0.8 }}
+                      >
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                  <a
+                    href={project.link}
+                    className="inline-flex items-center gap-2 text-sm uppercase tracking-widest font-light transition-opacity pt-4"
+                    style={{ color: colors.darkGrey, opacity: 0.5 }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}
+                  >
+                    View Project <ArrowUpRight size={14} />
+                  </a>
+                </div>
               </div>
-
-              {projects.map((project) => (
-                <div key={project.id} className="p-6" style={{ backgroundColor: colors.white }}>
-                  <div className="flex justify-between items-start gap-6">
-                    <div className="flex-1">
-                      <div className="text-sm uppercase tracking-widest font-light mb-2" style={{ color: colors.darkGrey, opacity: 0.6 }}>
-                        {project.year} · ID: {project.id}
-                      </div>
-                      <h3 className="text-3xl font-light mb-2" style={{ color: colors.darkGrey }}>
-                        {project.title}
-                      </h3>
-                      <p className="text-lg font-light mb-4" style={{ color: colors.darkGrey, opacity: 0.6 }}>
-                        {project.role}
-                      </p>
-                      <p className="text-base font-light mb-4" style={{ color: colors.darkGrey, opacity: 0.8 }}>
-                        {project.description}
-                      </p>
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {project.technologies.map((tech, i) => (
-                          <span
-                            key={i}
-                            className="text-sm font-light px-3 py-1"
-                            style={{ backgroundColor: colors.beige, color: colors.darkGrey }}
-                          >
-                            {tech}
-                          </span>
-                        ))}
-                      </div>
-                      <a href={project.link} className="text-sm" style={{ color: colors.darkGrey, opacity: 0.6 }}>
-                        {project.link}
-                      </a>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={() => openProjectModal(project)}
-                        className="px-4 py-2 text-sm uppercase tracking-widest font-light border flex items-center gap-2 whitespace-nowrap"
-                        style={{ borderColor: colors.darkGrey, color: colors.darkGrey }}
-                      >
-                        <Edit size={14} /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteProject(project.id)}
-                        className="px-4 py-2 text-sm uppercase tracking-widest font-light flex items-center gap-2 whitespace-nowrap"
-                        style={{ backgroundColor: '#dc2626', color: colors.white }}
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-32">
-              {projects.map((project) => (
-                <div key={project.id} className="grid md:grid-cols-12 gap-8 md:gap-16">
-                  <div className="md:col-span-5 space-y-4">
-                    <div className="text-sm uppercase tracking-widest font-light" style={{ color: colors.darkGrey, opacity: 0.8 }}>
-                      {project.year}
-                    </div>
-                    <h3 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight" style={{ color: colors.darkGrey }}>
-                      {project.title}
-                    </h3>
-                    <p className="text-base md:text-lg font-light" style={{ color: colors.darkGrey, opacity: 0.5 }}>
-                      {project.role}
-                    </p>
-                  </div>
-
-                  <div className="md:col-span-7 space-y-6">
-                    <p className="text-xl md:text-2xl font-light leading-relaxed" style={{ color: colors.darkGrey, opacity: 0.7 }}>
-                      {project.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {project.technologies.map((tech, i) => (
-                        <span
-                          key={i}
-                          className="text-sm md:text-base font-light px-4 py-2"
-                          style={{ backgroundColor: colors.white, color: colors.darkGrey, opacity: 0.8 }}
-                        >
-                          {tech}
-                        </span>
-                      ))}
-                    </div>
-                    <a
-                      href={project.link}
-                      className="inline-flex items-center gap-2 text-sm uppercase tracking-widest font-light transition-opacity pt-4"
-                      style={{ color: colors.darkGrey, opacity: 0.5 }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}
-                    >
-                      View Project <ArrowUpRight size={14} />
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+            ))}
+          </div>
         </div>
       </section>
 

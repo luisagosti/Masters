@@ -8,6 +8,7 @@ const homeRoutes = require("./routes/homeRoutes");
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const userRoutes = require("./routes/userRoutes");
 const authenticate = require("./middleware/authMiddleware");
 const { testConnection } = require("./config/db");
 
@@ -20,6 +21,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(logger);
 
 // Test database connection on startup
@@ -32,6 +34,7 @@ app.use("/projects", projectRoutes);
 
 // Protected routes
 app.use("/dashboard", authenticate, dashboardRoutes);
+app.use("/users", userRoutes); // Already has authenticate middleware inside
 
 app.use(errorHandler);
 
