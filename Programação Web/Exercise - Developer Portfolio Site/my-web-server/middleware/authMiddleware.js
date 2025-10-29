@@ -1,13 +1,25 @@
-const express = require("express");
-const router = express.Router();
-const authController = require("../controllers/authController");
-const authenticate = require("../middleware/authMiddleware");
+const jwt = require("jsonwebtoken");
 
-// Public routes
-router.post("/register", authController.register);
-router.post("/login", authController.login);
+const authenticate = (req, res, next) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
 
-// Protected routes
-router.get("/me", authenticate, authController.getCurrentUser);
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "No token provided"
+            });
+        }
 
-module.exports = router;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid or expired token"
+        });
+    }
+};
+
+module.exports = authenticate;

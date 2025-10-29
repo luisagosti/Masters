@@ -94,6 +94,8 @@ exports.createProject = async (req, res, next) => {
         // Add technologies if provided
         if (technologies && Array.isArray(technologies)) {
             for (let techName of technologies) {
+                if (!techName || techName.trim() === '') continue;
+
                 // Get or create technology
                 let tech = await query('SELECT id FROM technologies WHERE name = ?', [techName]);
 
@@ -127,8 +129,9 @@ exports.createProject = async (req, res, next) => {
 exports.updateProject = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { title, year, role, description, link, is_active } = req.body;
+        const { title, year, role, description, link, is_active, technologies } = req.body;
 
+        // Update basic project info
         const result = await query(
             `UPDATE projects 
        SET title = COALESCE(?, title),
@@ -148,11 +151,40 @@ exports.updateProject = async (req, res, next) => {
             });
         }
 
+        // Update technologies if provided
+        if (technologies && Array.isArray(technologies)) {
+            // Remove existing technology associations
+            await query('DELETE FROM project_technologies WHERE project_id = ?', [id]);
+
+            // Add new technologies
+            for (let techName of technologies) {
+                if (!techName || techName.trim() === '') continue;
+
+                // Get or create technology
+                let tech = await query('SELECT id FROM technologies WHERE name = ?', [techName]);
+
+                let techId;
+                if (tech.length === 0) {
+                    const techResult = await query('INSERT INTO technologies (name) VALUES (?)', [techName]);
+                    techId = techResult.insertId;
+                } else {
+                    techId = tech[0].id;
+                }
+
+                // Link technology to project
+                await query(
+                    'INSERT INTO project_technologies (project_id, technology_id) VALUES (?, ?)',
+                    [id, techId]
+                );
+            }
+        }
+
         res.json({
             success: true,
             message: "Project updated successfully"
         });
     } catch (err) {
+        console.error('Update project error:', err);
         next(err);
     }
 };

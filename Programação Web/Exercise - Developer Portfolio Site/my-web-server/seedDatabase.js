@@ -21,7 +21,7 @@ async function seedDatabase() {
         await query("DELETE FROM users");
         await query("DELETE FROM experiences");
         await query("DELETE FROM skills");
-        console.log("✅ Existing data cleared\n");
+        console.log("Existing data cleared\n");
 
         // Seed Users
         console.log("Seeding users...");
@@ -40,7 +40,7 @@ async function seedDatabase() {
             "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
             ["Luis Alexandre", "llagostinho01@gmail.com", adminPassword, "admin"]
         );
-        console.log("✅ Users seeded (3)\n");
+        console.log("Users seeded (3)\n");
 
         // Seed Technologies
         console.log("Seeding technologies...");
@@ -229,7 +229,7 @@ async function seedDatabase() {
         console.log("   - 4 work experiences");
         console.log("   - 12 skills\n");
 
-        console.log("🔐 Test Accounts:");
+        console.log("Test Accounts:");
         console.log("   Admin: admin@portfolio.com / admin123");
         console.log("   Guest: guest@portfolio.com / guest123");
         console.log("   Owner: llagostinho01@gmail.com / admin123\n");

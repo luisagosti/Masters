@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Github, Linkedin, Mail, ArrowUpRight, LogIn, LogOut, Shield } from 'lucide-react';
+import { Menu, X, Github, Linkedin, Mail, ArrowUpRight, LogIn, LogOut, Shield, Edit, Trash2, Plus } from 'lucide-react';
 
 export default function Portfolio() {
   const API_URL = 'http://localhost:3000';
@@ -18,18 +18,27 @@ export default function Portfolio() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [dashboardData, setDashboardData] = useState(null);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
+  const [projectForm, setProjectForm] = useState({
+    title: '',
+    year: new Date().getFullYear().toString(),
+    role: '',
+    description: '',
+    link: '#',
+    technologies: ''
+  });
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
 
-    // Check for existing token
     const token = localStorage.getItem('token');
     if (token) {
       fetchCurrentUser(token);
     }
 
-    // Fetch projects
     fetchProjects();
 
     return () => window.removeEventListener('scroll', handleScroll);
@@ -98,6 +107,7 @@ export default function Portfolio() {
     setIsAuthenticated(false);
     setUser(null);
     setDashboardData(null);
+    setShowAdminPanel(false);
     localStorage.removeItem('token');
   };
 
@@ -117,6 +127,102 @@ export default function Portfolio() {
     }
   };
 
+  const openProjectModal = (project = null) => {
+    if (project) {
+      setEditingProject(project);
+      setProjectForm({
+        title: project.title,
+        year: project.year,
+        role: project.role,
+        description: project.description,
+        link: project.link,
+        technologies: project.technologies.join(', ')
+      });
+    } else {
+      setEditingProject(null);
+      setProjectForm({
+        title: '',
+        year: new Date().getFullYear().toString(),
+        role: '',
+        description: '',
+        link: '#',
+        technologies: ''
+      });
+    }
+    setShowProjectModal(true);
+  };
+
+  const handleProjectSubmit = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+
+    const projectData = {
+      ...projectForm,
+      technologies: projectForm.technologies.split(',').map(t => t.trim()).filter(t => t)
+    };
+
+    try {
+      const url = editingProject
+        ? `${API_URL}/projects/${editingProject.id}`
+        : `${API_URL}/projects`;
+
+      const method = editingProject ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(projectData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(editingProject ? 'Project updated successfully!' : 'Project created successfully!');
+        setShowProjectModal(false);
+        fetchProjects();
+        if (dashboardData) fetchDashboard();
+      } else {
+        alert(data.message || 'Operation failed');
+      }
+    } catch (error) {
+      console.error('Error saving project:', error);
+      alert('Failed to save project');
+    }
+  };
+
+  const handleDeleteProject = async (projectId) => {
+    if (!window.confirm('Are you sure you want to delete this project?')) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch(`${API_URL}/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Project deleted successfully!');
+        fetchProjects();
+        if (dashboardData) fetchDashboard();
+      } else {
+        alert(data.message || 'Delete failed');
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Failed to delete project');
+    }
+  };
+
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -127,6 +233,111 @@ export default function Portfolio() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.white, color: colors.darkGrey }}>
+      {/* Project Modal (Create/Edit) */}
+      {showProjectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="max-w-2xl w-full p-8 rounded-lg my-8" style={{ backgroundColor: colors.white }}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-light" style={{ color: colors.darkGrey }}>
+                {editingProject ? 'Edit Project' : 'Create New Project'}
+              </h2>
+              <button onClick={() => setShowProjectModal(false)} style={{ color: colors.darkGrey }}>
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleProjectSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm mb-2" style={{ color: colors.darkGrey }}>Title *</label>
+                <input
+                  type="text"
+                  value={projectForm.title}
+                  onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })}
+                  className="w-full px-4 py-3 border"
+                  style={{ borderColor: colors.beige, backgroundColor: colors.white }}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm mb-2" style={{ color: colors.darkGrey }}>Year *</label>
+                  <input
+                    type="text"
+                    value={projectForm.year}
+                    onChange={(e) => setProjectForm({ ...projectForm, year: e.target.value })}
+                    className="w-full px-4 py-3 border"
+                    style={{ borderColor: colors.beige, backgroundColor: colors.white }}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-2" style={{ color: colors.darkGrey }}>Role *</label>
+                  <input
+                    type="text"
+                    value={projectForm.role}
+                    onChange={(e) => setProjectForm({ ...projectForm, role: e.target.value })}
+                    className="w-full px-4 py-3 border"
+                    style={{ borderColor: colors.beige, backgroundColor: colors.white }}
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm mb-2" style={{ color: colors.darkGrey }}>Description *</label>
+                <textarea
+                  value={projectForm.description}
+                  onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
+                  className="w-full px-4 py-3 border"
+                  style={{ borderColor: colors.beige, backgroundColor: colors.white }}
+                  rows="4"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-2" style={{ color: colors.darkGrey }}>Link</label>
+                <input
+                  type="text"
+                  value={projectForm.link}
+                  onChange={(e) => setProjectForm({ ...projectForm, link: e.target.value })}
+                  className="w-full px-4 py-3 border"
+                  style={{ borderColor: colors.beige, backgroundColor: colors.white }}
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-2" style={{ color: colors.darkGrey }}>
+                  Technologies (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={projectForm.technologies}
+                  onChange={(e) => setProjectForm({ ...projectForm, technologies: e.target.value })}
+                  className="w-full px-4 py-3 border"
+                  style={{ borderColor: colors.beige, backgroundColor: colors.white }}
+                  placeholder="React, Node.js, MySQL"
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 text-sm uppercase tracking-widest font-light"
+                  style={{ backgroundColor: colors.darkGrey, color: colors.white }}
+                >
+                  {editingProject ? 'Update Project' : 'Create Project'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowProjectModal(false)}
+                  className="flex-1 px-6 py-3 text-sm uppercase tracking-widest font-light border"
+                  style={{ borderColor: colors.darkGrey, color: colors.darkGrey, backgroundColor: 'transparent' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Login Modal */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -215,6 +426,17 @@ export default function Portfolio() {
                 <span className="text-sm font-light" style={{ color: colors.darkGrey, opacity: 0.8 }}>
                   {user?.name} {user?.role === 'admin' && <Shield size={14} className="inline ml-1" />}
                 </span>
+                {user?.role === 'admin' && (
+                  <button
+                    onClick={() => setShowAdminPanel(!showAdminPanel)}
+                    className="text-base uppercase tracking-widest font-light transition-opacity"
+                    style={{ color: colors.darkGrey, opacity: 0.8 }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = 0.8}
+                  >
+                    {showAdminPanel ? 'Close Admin' : 'Admin Panel'}
+                  </button>
+                )}
                 <button
                   onClick={handleLogout}
                   className="text-base uppercase tracking-widest font-light transition-opacity flex items-center gap-2"
@@ -261,13 +483,27 @@ export default function Portfolio() {
                 </button>
               ))}
               {isAuthenticated ? (
-                <button
-                  onClick={handleLogout}
-                  className="block text-sm uppercase tracking-widest font-light w-full text-left"
-                  style={{ color: colors.darkGrey }}
-                >
-                  Logout ({user?.name})
-                </button>
+                <>
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={() => {
+                        setShowAdminPanel(!showAdminPanel);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="block text-sm uppercase tracking-widest font-light w-full text-left"
+                      style={{ color: colors.darkGrey }}
+                    >
+                      {showAdminPanel ? 'Close Admin' : 'Admin Panel'}
+                    </button>
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    className="block text-sm uppercase tracking-widest font-light w-full text-left"
+                    style={{ color: colors.darkGrey }}
+                  >
+                    Logout ({user?.name})
+                  </button>
+                </>
               ) : (
                 <button
                   onClick={() => setShowLoginModal(true)}
@@ -342,7 +578,7 @@ export default function Portfolio() {
         </div>
       </section>
 
-      {/* Dashboard Section (only visible when logged in) */}
+      {/* Dashboard Section */}
       {isAuthenticated && dashboardData && (
         <section className="py-32 px-6 md:px-12" style={{ backgroundColor: colors.white, borderTop: `1px solid ${colors.beige}` }}>
           <div className="container mx-auto max-w-6xl">
@@ -408,56 +644,135 @@ export default function Portfolio() {
         </section>
       )}
 
-      {/* Work */}
+      {/* Work Section with Admin CRUD */}
       <section id="work" className="py-32 px-6 md:px-12" style={{ backgroundColor: colors.beige }}>
         <div className="container mx-auto max-w-6xl">
-          <h2 className="text-sm md:text-base uppercase tracking-widest font-light mb-20" style={{ color: colors.darkGrey, opacity: 0.8 }}>
-            Selected Work {projects.length > 0 && `· ${projects.length} Projects`}
-          </h2>
-
-          <div className="space-y-32">
-            {projects.map((project, index) => (
-              <div key={project.id} className="grid md:grid-cols-12 gap-8 md:gap-16">
-                <div className="md:col-span-5 space-y-4">
-                  <div className="text-sm uppercase tracking-widest font-light" style={{ color: colors.darkGrey, opacity: 0.8 }}>
-                    {project.year}
-                  </div>
-                  <h3 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight" style={{ color: colors.darkGrey }}>
-                    {project.title}
-                  </h3>
-                  <p className="text-base md:text-lg font-light" style={{ color: colors.darkGrey, opacity: 0.5 }}>
-                    {project.role}
-                  </p>
-                </div>
-
-                <div className="md:col-span-7 space-y-6">
-                  <p className="text-xl md:text-2xl font-light leading-relaxed" style={{ color: colors.darkGrey, opacity: 0.7 }}>
-                    {project.description}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {project.technologies.map((tech, i) => (
-                      <span
-                        key={i}
-                        className="text-sm md:text-base font-light px-4 py-2"
-                        style={{ backgroundColor: colors.white, color: colors.darkGrey, opacity: 0.8 }}
-                      >
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                  <a
-                    href={project.link}
-                    className="inline-flex items-center gap-2 text-sm uppercase tracking-widest font-light transition-opacity pt-4"
-                    style={{ color: colors.darkGrey, opacity: 0.5 }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                    onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}
-                  >
-                    View Project <ArrowUpRight size={14} />
-                  </a>
-                </div>
-              </div>
-            ))}
+          <div className="flex justify-between items-center mb-20">
+            <h2 className="text-sm md:text-base uppercase tracking-widest font-light" style={{ color: colors.darkGrey, opacity: 0.8 }}>
+              Selected Work {projects.length > 0 && `· ${projects.length} Projects`}
+            </h2>
+            {user?.role === 'admin' && !showAdminPanel && (
+              <button
+                onClick={() => openProjectModal()}
+                className="px-6 py-3 text-sm uppercase tracking-widest font-light flex items-center gap-2"
+                style={{ backgroundColor: colors.darkGrey, color: colors.white }}
+              >
+                <Plus size={16} /> New Project
+              </button>
+            )}
           </div>
+
+          {showAdminPanel && user?.role === 'admin' ? (
+            <div className="space-y-8">
+              <div className="flex justify-between items-center p-6" style={{ backgroundColor: colors.white }}>
+                <h3 className="text-2xl font-light" style={{ color: colors.darkGrey }}>
+                  Project Management
+                </h3>
+                <button
+                  onClick={() => openProjectModal()}
+                  className="px-6 py-3 text-sm uppercase tracking-widest font-light flex items-center gap-2"
+                  style={{ backgroundColor: colors.darkGrey, color: colors.white }}
+                >
+                  <Plus size={16} /> Create New Project
+                </button>
+              </div>
+
+              {projects.map((project) => (
+                <div key={project.id} className="p-6" style={{ backgroundColor: colors.white }}>
+                  <div className="flex justify-between items-start gap-6">
+                    <div className="flex-1">
+                      <div className="text-sm uppercase tracking-widest font-light mb-2" style={{ color: colors.darkGrey, opacity: 0.6 }}>
+                        {project.year} · ID: {project.id}
+                      </div>
+                      <h3 className="text-3xl font-light mb-2" style={{ color: colors.darkGrey }}>
+                        {project.title}
+                      </h3>
+                      <p className="text-lg font-light mb-4" style={{ color: colors.darkGrey, opacity: 0.6 }}>
+                        {project.role}
+                      </p>
+                      <p className="text-base font-light mb-4" style={{ color: colors.darkGrey, opacity: 0.8 }}>
+                        {project.description}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {project.technologies.map((tech, i) => (
+                          <span
+                            key={i}
+                            className="text-sm font-light px-3 py-1"
+                            style={{ backgroundColor: colors.beige, color: colors.darkGrey }}
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                      <a href={project.link} className="text-sm" style={{ color: colors.darkGrey, opacity: 0.6 }}>
+                        {project.link}
+                      </a>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => openProjectModal(project)}
+                        className="px-4 py-2 text-sm uppercase tracking-widest font-light border flex items-center gap-2 whitespace-nowrap"
+                        style={{ borderColor: colors.darkGrey, color: colors.darkGrey }}
+                      >
+                        <Edit size={14} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProject(project.id)}
+                        className="px-4 py-2 text-sm uppercase tracking-widest font-light flex items-center gap-2 whitespace-nowrap"
+                        style={{ backgroundColor: '#dc2626', color: colors.white }}
+                      >
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-32">
+              {projects.map((project) => (
+                <div key={project.id} className="grid md:grid-cols-12 gap-8 md:gap-16">
+                  <div className="md:col-span-5 space-y-4">
+                    <div className="text-sm uppercase tracking-widest font-light" style={{ color: colors.darkGrey, opacity: 0.8 }}>
+                      {project.year}
+                    </div>
+                    <h3 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight" style={{ color: colors.darkGrey }}>
+                      {project.title}
+                    </h3>
+                    <p className="text-base md:text-lg font-light" style={{ color: colors.darkGrey, opacity: 0.5 }}>
+                      {project.role}
+                    </p>
+                  </div>
+
+                  <div className="md:col-span-7 space-y-6">
+                    <p className="text-xl md:text-2xl font-light leading-relaxed" style={{ color: colors.darkGrey, opacity: 0.7 }}>
+                      {project.description}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {project.technologies.map((tech, i) => (
+                        <span
+                          key={i}
+                          className="text-sm md:text-base font-light px-4 py-2"
+                          style={{ backgroundColor: colors.white, color: colors.darkGrey, opacity: 0.8 }}
+                        >
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                    <a
+                      href={project.link}
+                      className="inline-flex items-center gap-2 text-sm uppercase tracking-widest font-light transition-opacity pt-4"
+                      style={{ color: colors.darkGrey, opacity: 0.5 }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}
+                    >
+                      View Project <ArrowUpRight size={14} />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
