@@ -10,14 +10,17 @@
     "lucide-react": "^0.546.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-scripts": "5.0.1",
+    "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "wasm:build": "cd src/wasm && npm run asbuild",
+    "wasm:copy": "cp src/wasm/build/release.wasm public/wasm/build/optimized.wasm",
+    "wasm:all": "npm run wasm:build && npm run wasm:copy",
+    "start": "npm run wasm:copy && react-scripts start"
   },
   "eslintConfig": {
     "extends": [
@@ -38,6 +41,7 @@
     ]
   },
   "devDependencies": {
+    "assemblyscript": "^0.28.9",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.18"

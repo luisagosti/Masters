@@ -1,0 +1,14 @@
+{
+  "entries": ["assembly/index.ts"],
+  "targets": {
+    "debug": {
+      "outFile": "build/untouched.wasm",
+      "optimize": false,
+      "debug": true
+    },
+    "release": {
+      "outFile": "build/optimized.wasm",
+      "optimize": true
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Github, Linkedin, Mail, ArrowUpRight, LogIn, LogOut, Shield, Edit, Trash2, Plus, Users } from 'lucide-react';
+import GameOfLife from './AssemblyScript/components/GameOfLife';
 
 export default function Portfolio() {
   const API_URL = 'http://localhost:3000';
@@ -615,16 +616,14 @@ export default function Portfolio() {
           </button>
 
           <div className="hidden md:flex items-center gap-8">
-            {['work', 'about', 'contact'].map((section) => (
+            {['work', 'about', 'wasm', 'contact'].map((section) => (
               <button
                 key={section}
                 onClick={() => scrollToSection(section)}
                 className="text-base uppercase tracking-widest font-light transition-opacity"
                 style={{ color: colors.darkGrey, opacity: 0.8 }}
-                onMouseEnter={(e) => e.target.style.opacity = 1}
-                onMouseLeave={(e) => e.target.style.opacity = 0.8}
               >
-                {section}
+                {section === 'wasm' ? 'WebAssembly' : section}
               </button>
             ))}
 
@@ -1209,6 +1208,19 @@ export default function Portfolio() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Game of Life */}
+      <section id="wasm" className="py-32 px-6 md:px-12" style={{ backgroundColor: colors.white }}>
+        <div className="container mx-auto max-w-6xl mb-12">
+          <h2 className="text-sm md:text-base uppercase tracking-widest font-light mb-4" style={{ color: colors.darkGrey, opacity: 0.8 }}>
+            WebAssembly Demo
+          </h2>
+          <p className="text-xl font-light" style={{ color: colors.darkGrey, opacity: 0.7 }}>
+            Demonstração de computação de alto desempenho com WebAssembly e AssemblyScript
+          </p>
+        </div>
+        <GameOfLife />
       </section>
 
       {/* Footer */}
