@@ -109,7 +109,7 @@ Editar `server.js` com credenciais do MySQL (linhas 14-18):
 const dbConfig = {
   host: 'localhost',
   user: 'root',
-  password: 'TUA_PASSWORD',
+  password: 'password',
   database: 'sales_dashboard'
 };
 ```
@@ -230,20 +230,6 @@ Todo o código foi revisto e ajustado manualmente:
 - IA sugeriu estruturas genéricas que precisaram de adaptação ao contexto português
 - Queries iniciais não tinham filtros de status, adicionados manualmente
 - Design visual básico, melhorias estéticas feitas à mão
-
-## Screenshots
-
-### Dashboard Completo
-![Dashboard Overview](screenshots/dashboard-full.png)
-
-### KPI Cards
-![KPIs](screenshots/kpis.png)
-
-### Gráfico de Linha
-![Vendas Mensais](screenshots/line-chart.png)
-
-### Gráfico de Barras
-![Vendas por Categoria](screenshots/bar-chart.png)
 
 ## Segurança
 
