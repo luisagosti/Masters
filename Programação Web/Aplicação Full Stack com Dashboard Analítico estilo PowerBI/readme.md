@@ -209,7 +209,7 @@ ORDER BY revenue DESC;
 ## Utilização de IA no Projeto
 
 ### Ferramentas Utilizadas
-- **Claude (Anthropic)**: Assistência na estruturação do projeto, geração de dados fictícios, criação de queries SQL, organização do código
+- **ChatGPT (OpenAI)**: Assistência na geração de dados fictícios e queries SQL
 
 ### Como foi utilizada
 1. **Planeamento**: Definição da estrutura de tabelas e relacionamentos
