@@ -212,22 +212,11 @@ ORDER BY revenue DESC;
 - **ChatGPT (OpenAI)**: Assistência na geração de dados fictícios e queries SQL
 
 ### Como foi utilizada
-1. **Planeamento**: Definição da estrutura de tabelas e relacionamentos
-2. **Geração de Dados**: Criação de 200 vendas fictícias com datas distribuídas ao longo de 2024
-3. **Desenvolvimento**: Sugestões de organização de código, boas práticas (prepared statements, separação de concerns)
-4. **Queries SQL**: Otimização de queries para agregações e joins
-5. **Frontend**: Estrutura dos componentes React e integração com Recharts
-6. **Documentação**: Elaboração deste README
-
-### Código Compreendido e Ajustado
-Todo o código foi revisto e ajustado manualmente:
-- Comentários adicionados em português para clareza
-- Validações de erro implementadas
-- Formatação de valores monetários personalizada para EUR
-- Responsividade do dashboard testada
+1. **Geração de Dados**: Criação de 200 vendas fictícias com datas distribuídas ao longo de 2024
+2. **Queries SQL**: Otimização de queries para agregações e joins
+3. **Frontend**: Estrutura dos componentes React e integração com Recharts
 
 ### Limitações da Abordagem com IA
-- IA sugeriu estruturas genéricas que precisaram de adaptação ao contexto português
 - Queries iniciais não tinham filtros de status, adicionados manualmente
 - Design visual básico, melhorias estéticas feitas à mão
 
@@ -237,26 +226,6 @@ Todo o código foi revisto e ajustado manualmente:
 - CORS configurado para aceitar apenas localhost (produção requer restrição)
 - Validação básica de erros em todos os endpoints
 - Sem autenticação implementada (opcional para extensão futura)
-
-## Melhorias Futuras
-
-### Funcionalidades
-- Filtros interativos (datas, categorias, cidades)
-- Autenticação JWT para proteger endpoints
-- CRUD completo (adicionar/editar/eliminar vendas)
-- Export de dados para Excel/PDF
-- Dashboard em tempo real (WebSockets)
-
-### Performance
-- Cache de queries frequentes (Redis)
-- Paginação na listagem de produtos
-- Lazy loading de gráficos
-
-### UX/UI
-- Modo escuro
-- Animações nos gráficos
-- Design responsivo melhorado para mobile
-- Biblioteca de UI (Material-UI ou Ant Design)
 
 ## Reflexão Final
 
@@ -277,11 +246,3 @@ Todo o código foi revisto e ajustado manualmente:
 - Utilização eficaz de bibliotecas de visualização
 - Importância de prepared statements para segurança
 - Valor da IA como assistente (não substituto) no desenvolvimento
-
-## Autor
-
-Projeto desenvolvido para o curso de Mestrado, com assistência de IA (Claude) para estruturação, geração de dados e otimizações de código.
-
-## Licença
-
-MIT
